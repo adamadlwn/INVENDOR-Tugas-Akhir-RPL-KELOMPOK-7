@@ -37,8 +37,6 @@ $daftar_barang = mysqli_query($koneksi, $query);
             color: white; 
             padding: 25px 20px; 
             border-right: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            flex-direction: column;
         }
         .sidebar h3 { text-align: center; margin-bottom: 30px; font-weight: 700; }
         .sidebar a { display: block; color: #cbd5e1; padding: 12px; text-decoration: none; border-radius: 8px; margin-bottom: 10px; transition: 0.3s; }
@@ -59,7 +57,7 @@ $daftar_barang = mysqli_query($koneksi, $query);
         <h3>INVENDOR</h3>
         <a href="index.php">🏠 Dashboard</a>
         <a href="staf.php" class="active">👁️ Lihat Stok Barang</a>
-        <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.8); text-align:center; margin-top:auto;">🚪 Keluar</a>
+        <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.85); text-align:center; margin-top: 25px; font-weight: bold;">🚪 Keluar</a>
     </div>
     <div class="main-content">
         <div class="header"><h2>Daftar Informasi Stok (Staf)</h2></div>

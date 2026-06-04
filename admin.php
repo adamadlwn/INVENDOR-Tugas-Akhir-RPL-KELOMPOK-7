@@ -9,6 +9,7 @@ require_once 'koneksi.php';
 $id_edit = ''; $kode = ''; $nama = ''; $id_kategori_pilih = ''; $stok = ''; $harga = '';
 $is_edit = false;
 
+// --- LOGIKA OTOMATIS GENERATE KODE BARANG ---
 if (!$is_edit) {
     $query_max = mysqli_query($koneksi, "SELECT kode_barang FROM barang ORDER BY id DESC LIMIT 1");
     if (mysqli_num_rows($query_max) > 0) {
@@ -22,6 +23,7 @@ if (!$is_edit) {
     }
 }
 
+// --- PROSES TAMBAH KATEGORI BARU ---
 if (isset($_POST['tambah_kategori'])) {
     $kategori_baru = mysqli_real_escape_string($koneksi, $_POST['nama_kategori_baru']);
     if (!empty($kategori_baru)) {
@@ -34,6 +36,7 @@ if (isset($_POST['tambah_kategori'])) {
     exit;
 }
 
+// --- PROSES SIMPAN / EDIT BARANG ---
 if (isset($_POST['simpan'])) {
     $nama = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
     $id_kategori = (int)$_POST['id_kategori'];
@@ -65,6 +68,7 @@ if (isset($_POST['simpan'])) {
     exit;
 }
 
+// --- AMBIL DATA EDIT ---
 if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     $id = $_GET['id'];
     $result = mysqli_query($koneksi, "SELECT * FROM barang WHERE id=$id");
@@ -74,6 +78,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     }
 }
 
+// --- PROSES HAPUS ---
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
     $user_id = $_SESSION['id_user'];
@@ -114,8 +119,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
             color: white; 
             padding: 25px 20px; 
             border-right: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            flex-direction: column;
         }
         .sidebar h3 { text-align: center; margin-bottom: 30px; font-weight: 700; }
         .sidebar a { display: block; color: #cbd5e1; padding: 12px; text-decoration: none; border-radius: 8px; margin-bottom: 10px; transition: 0.3s; }
@@ -131,11 +134,29 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
         .btn { padding: 10px 20px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; display: inline-block; }
         .btn-success { background-color: #2e7d32; }
         .btn-primary { background-color: #0284c7; width: 100%; }
-        .btn-danger { background-color: #c62828; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; }
+        .btn-danger { background-color: #c62828; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; cursor: pointer; }
         .btn-edit { background-color: #0284c7; color: white; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; margin-right: 5px; }
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         th { background-color: #2e7d32; color: white; }
+
+        /* --- STYLES UNTUK CUSTOM ALERT MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .modal-box {
+            background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 420px;
+            text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border: 1px solid rgba(27, 94, 32, 0.2); animation: fadeInUp 0.3s ease-out;
+        }
+        .modal-box h3 { color: #c62828; font-size: 20px; margin-bottom: 12px; font-weight: 700; }
+        .modal-box p { color: #475569; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
+        .modal-buttons { display: flex; justify-content: center; gap: 15px; }
+        .btn-modal-cancel { background: #cbd5e1; color: #334155; padding: 10px 22px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .btn-modal-confirm { background: #c62828; color: white; padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 10px rgba(198,40,40,0.2); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -143,8 +164,9 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
         <h3>INVENDOR</h3>
         <a href="index.php">🏠 Dashboard</a>
         <a href="admin.php" class="active">📦 Kelola Barang (CRUD)</a>
-        <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.8); text-align:center; margin-top:auto;">🚪 Keluar</a>
+        <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.85); text-align:center; margin-top: 25px; font-weight: bold;">🚪 Keluar</a>
     </div>
+    
     <div class="main-content">
         <div class="header"><h2>Manajemen Stok Barang (Admin)</h2></div>
         
@@ -193,17 +215,40 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
             <tbody>
                 <?php while ($row = mysqli_fetch_assoc($daftar_barang)): ?>
                 <tr>
-                    <td><strong><?= $row['kode_barang']; ?></strong></td><td><?= $row['nama_barang']; ?></td><td><?= $row['nama_kategori'] ?? 'Tanpa Kategori'; ?></td>
+                    <td><strong><?= $row['kode_barang']; ?></strong></td><td><?= $row['nama_barang']; ?></td><td><?= $row['nama_kategori'] ?? 'Tanoa Kategori'; ?></td>
                     <td><span style="color: <?= ($row['stok'] < 5) ? '#c62828; font-weight:bold;' : '#333'; ?>"><?= $row['stok']; ?> Pcs</span></td>
                     <td>Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
                     <td>
                         <a href="admin.php?action=edit&id=<?= $row['id']; ?>" class="btn-edit">Edit</a>
-                        <a href="admin.php?action=delete&id=<?= $row['id']; ?>" class="btn-danger" onclick="return confirm('Hapus barang ini?')">Hapus</a>
+                        <button type="button" class="btn-danger" onclick="bukaModalHapus(<?= $row['id']; ?>, '<?= htmlspecialchars($row['nama_barang'], ENT_QUOTES); ?>')">Hapus</button>
                     </td>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
     </div>
+
+    <div id="modalHapus" class="modal-overlay">
+        <div class="modal-box">
+            <h3>⚠️ Konfirmasi Hapus</h3>
+            <p>Apakah Anda benar-benar yakin ingin menghapus data barang <strong id="namaBarangTeks" style="color:#1e293b;"></strong> dari sistem inventaris?</p>
+            <div class="modal-buttons">
+                <button type="button" class="btn-modal-cancel" onclick="tutupModalHapus()">Batal</button>
+                <a id="linkKonfirmasiHapus" href="#" class="btn-modal-confirm">Ya, Hapus</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function bukaModalHapus(id, namaBarang) {
+            document.getElementById('namaBarangTeks').innerText = namaBarang;
+            document.getElementById('linkKonfirmasiHapus').href = 'admin.php?action=delete&id=' + id;
+            document.getElementById('modalHapus').style.display = 'flex';
+        }
+
+        function tutupModalHapus() {
+            document.getElementById('modalHapus').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
