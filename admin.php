@@ -23,7 +23,7 @@ if (!$is_edit) {
     }
 }
 
-// --- PROSES TAMBAH KATEGORI BARU (FITUR BARU) ---
+// --- PROSES TAMBAH KATEGORI BARU ---
 if (isset($_POST['tambah_kategori'])) {
     $kategori_baru = mysqli_real_escape_string($koneksi, $_POST['nama_kategori_baru']);
     if (!empty($kategori_baru)) {
@@ -46,7 +46,7 @@ if (isset($_POST['simpan'])) {
     $user_id = $_SESSION['id_user'];
 
     if ($_POST['id_edit'] != '') {
-        // Ambil data stok lama untuk perbandingan log
+        // Update
         $id = $_POST['id_edit'];
         $lama = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT stok FROM barang WHERE id=$id"));
         $stok_lama = $lama['stok'];
@@ -54,16 +54,22 @@ if (isset($_POST['simpan'])) {
         
         mysqli_query($koneksi, "UPDATE barang SET nama_barang='$nama', id_kategori=$id_kategori, stok=$stok, harga=$harga WHERE id=$id");
         
-        // Tentukan keterangan log keluar/masuk
-        $ket_log = "Memperbarui barang '$nama'. Stok diubah dari $stok_lama menjadi $stok.";
-        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'PROSES EDIT', $selisih, $user_id, '$ket_log')");
+        // Mengamankan teks log dari tabrakan tanda petik
+        $ket_log = "Memperbarui data barang [$nama]. Stok diubah dari $stok_lama menjadi $stok.";
+        $ket_log_aman = mysqli_real_escape_string($koneksi, $ket_log);
+        
+        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'PROSES EDIT', $selisih, $user_id, '$ket_log_aman')");
     } else {
         // Insert Baru
         $kode_baru = $_POST['kode_barang'];
         mysqli_query($koneksi, "INSERT INTO barang (kode_barang, nama_barang, id_kategori, stok, harga, id_user) VALUES ('$kode_baru', '$nama', $id_kategori, $stok, $harga, $user_id)");
         $new_id = mysqli_insert_id($koneksi);
         
-        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($new_id, 'BARANG MASUK', $stok, $user_id, 'Menambahkan barang baru: $nama dengan stok awal $stok Pcs')");
+        // Mengamankan teks log dari tabrakan tanda petik
+        $ket_log_baru = "Menambahkan barang baru: $nama dengan stok awal $stok Pcs";
+        $ket_log_baru_aman = mysqli_real_escape_string($koneksi, $ket_log_baru);
+        
+        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($new_id, 'BARANG MASUK', $stok, $user_id, '$ket_log_baru_aman')");
     }
     header("Location: admin.php");
     exit;
@@ -88,7 +94,11 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $nama_b = $b['nama_barang'] ?? 'Barang';
     $stok_b = $b['stok'] ?? 0;
     
-    mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES (NULL, 'BARANG DIHAPUS', -$stok_b, $user_id, 'Menghapus barang dari sistem: $nama_b (Stok terakhir: $stok_b Pcs)')");
+    // Mengamankan teks log hapus dari tabrakan tanda petik
+    $ket_log_hapus = "Menghapus barang dari sistem: $nama_b (Stok terakhir: $stok_b Pcs)";
+    $ket_log_hapus_aman = mysqli_real_escape_string($koneksi, $ket_log_hapus);
+    
+    mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES (NULL, 'BARANG DIHAPUS', -$stok_b, $user_id, '$ket_log_hapus_aman')");
     mysqli_query($koneksi, "DELETE FROM barang WHERE id=$id");
     header("Location: admin.php");
     exit;
@@ -166,7 +176,7 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
                 </form>
             </div>
 
-            <!-- Form Tambah Kategori Baru (Dinamis) -->
+            <!-- Form Tambah Kategori Baru -->
             <div class="form-container" style="border-left: 4px solid #0284c7;">
                 <h3>📁 Kategori Baru</h3>
                 <form action="admin.php" method="POST" style="margin-top: 15px;">
