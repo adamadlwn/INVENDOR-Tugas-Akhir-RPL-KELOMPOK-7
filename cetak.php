@@ -149,15 +149,15 @@ $total_aktivitas = mysqli_num_rows($daftar_riwayat);
     </table>
 
     <div class="ttd-container">
-        <div class="ttd-box">
-            <p>Jakarta, <?= date('d F Y'); ?></p>
-            <p>Mengetahui,</p>
-            <p><strong>Kepala Inspektur Audit Logistik</strong></p>
-            <div class="ttd-space"></div>
-            <p style="text-decoration: underline;"><strong>(...........................)</strong></p>
-            <p style="font-size: 11px; color: #555;">NIP. <?= date('Ymd'); ?>0299</p>
-        </div>
+    <div class="ttd-box">
+        <p>Samarinda, <?= date('d F Y'); ?></p> <!-- Sudah berubah menjadi Samarinda -->
+        <p>Mengetahui,</p>
+        <p><strong>Kepala Inspektur Audit Logistik</strong></p>
+        <div class="ttd-space"></div>
+        <p style="text-decoration: underline;"><strong>(...........................)</strong></p>
+        <p style="font-size: 11px; color: #555;">NIP. <?= date('Ymd'); ?>0299</p>
     </div>
+</div>
 
     <script>
         window.onload = function() {
