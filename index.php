@@ -11,7 +11,8 @@ $data_stok = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(stok) AS tota
 $total_stok_tampil = $data_stok['total_stok'] ?? 0;
 $data_menipis = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) AS stok_menipis FROM barang WHERE stok < 5"));
 
-$riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat_stok r LEFT JOIN users u ON r.id_user = u.id ORDER BY r.id DESC LIMIT 10");
+// Kita naikkan limitnya menjadi 30 riwayat terbaru karena sekarang sudah bisa di-scroll!
+$riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat_stok r LEFT JOIN users u ON r.id_user = u.id ORDER BY r.id DESC LIMIT 30");
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -51,9 +52,25 @@ $riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat
         
         .log-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
         .log-container h3 { color: #1e293b; margin-bottom: 15px; font-size: 18px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        
+        /* --- KOTAK SCROLL KHUSUS TABEL --- */
+        .table-wrapper {
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-        th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
+        th { 
+            background-color: #f8fafc; 
+            color: #64748b; 
+            font-weight: 600;
+            position: sticky; /* Membuat kepala tabel tetap di atas saat di-scroll */
+            top: 0;
+            z-index: 10;
+            box-shadow: inset 0 -1px 0 #e2e8f0;
+        }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; }
         .bg-masuk { background-color: #2e7d32; }
         .bg-edit { background-color: #0284c7; }
@@ -94,34 +111,36 @@ $riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat
         
         <div class="log-container">
             <h3>📋 Jurnal Mutasi Stok & Riwayat Aktivitas Sistem</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Waktu Kejadian</th>
-                        <th>Aktor (User)</th>
-                        <th>Aktivitas</th>
-                        <th>Detail Keterangan Riwayat</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if(mysqli_num_rows($riwayat_query) > 0): ?>
-                        <?php while($log = mysqli_fetch_assoc($riwayat_query)): 
-                            $badge_class = 'bg-edit';
-                            if($log['jenis_perubahan'] === 'BARANG MASUK') $badge_class = 'bg-masuk';
-                            if($log['jenis_perubahan'] === 'BARANG DIHAPUS') $badge_class = 'bg-hapus';
-                        ?>
-                            <tr>
-                                <td style="color: #94a3b8; font-size: 13px;"><?= $log['tanggal']; ?></td>
-                                <td><strong><?= $log['nama_lengkap']; ?></strong></td>
-                                <td><span class="badge <?= $badge_class; ?>"><?= $log['jenis_perubahan']; ?></span></td>
-                                <td style="color: #475569;"><?= $log['keterangan']; ?></td>
-                            </tr>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <tr><td colspan="4" style="text-align: center; color: #aaa;">Belum ada riwayat aktivitas.</td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+            <div class="table-wrapper" style="margin-top: 15px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Waktu Kejadian</th>
+                            <th>Aktor (User)</th>
+                            <th>Aktivitas</th>
+                            <th>Detail Keterangan Riwayat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if(mysqli_num_rows($riwayat_query) > 0): ?>
+                            <?php while($log = mysqli_fetch_assoc($riwayat_query)): 
+                                $badge_class = 'bg-edit';
+                                if($log['jenis_perubahan'] === 'BARANG MASUK') $badge_class = 'bg-masuk';
+                                if($log['jenis_perubahan'] === 'BARANG DIHAPUS') $badge_class = 'bg-hapus';
+                            ?>
+                                <tr>
+                                    <td style="color: #94a3b8; font-size: 13px;"><?= $log['tanggal']; ?></td>
+                                    <td><strong><?= $log['nama_lengkap']; ?></strong></td>
+                                    <td><span class="badge <?= $badge_class; ?>"><?= $log['jenis_perubahan']; ?></span></td>
+                                    <td style="color: #475569;"><?= $log['keterangan']; ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr><td colspan="4" style="text-align: center; color: #aaa;">Belum ada riwayat aktivitas.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </body>

@@ -9,7 +9,6 @@ require_once 'koneksi.php';
 $id_edit = ''; $kode = ''; $nama = ''; $id_kategori_pilih = ''; $stok = ''; $harga = '';
 $is_edit = false;
 
-// --- LOGIKA OTOMATIS GENERATE KODE BARANG ---
 if (!$is_edit) {
     $query_max = mysqli_query($koneksi, "SELECT kode_barang FROM barang ORDER BY id DESC LIMIT 1");
     if (mysqli_num_rows($query_max) > 0) {
@@ -23,7 +22,6 @@ if (!$is_edit) {
     }
 }
 
-// --- PROSES TAMBAH KATEGORI BARU ---
 if (isset($_POST['tambah_kategori'])) {
     $kategori_baru = mysqli_real_escape_string($koneksi, $_POST['nama_kategori_baru']);
     if (!empty($kategori_baru)) {
@@ -36,7 +34,6 @@ if (isset($_POST['tambah_kategori'])) {
     exit;
 }
 
-// --- PROSES SIMPAN / EDIT BARANG ---
 if (isset($_POST['simpan'])) {
     $nama = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
     $id_kategori = (int)$_POST['id_kategori'];
@@ -68,7 +65,6 @@ if (isset($_POST['simpan'])) {
     exit;
 }
 
-// --- AMBIL DATA EDIT ---
 if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     $id = $_GET['id'];
     $result = mysqli_query($koneksi, "SELECT * FROM barang WHERE id=$id");
@@ -78,7 +74,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     }
 }
 
-// --- PROSES HAPUS ---
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
     $user_id = $_SESSION['id_user'];
@@ -136,11 +131,26 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
         .btn-primary { background-color: #0284c7; width: 100%; }
         .btn-danger { background-color: #c62828; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; cursor: pointer; }
         .btn-edit { background-color: #0284c7; color: white; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; margin-right: 5px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
+        
+        /* --- KOTAK SCROLL KHUSUS TABEL DATA BARANG --- */
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+            border: 1px solid #e2e8f0;
+        }
+        table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-        th { background-color: #2e7d32; color: white; }
+        th { 
+            background-color: #2e7d32; 
+            color: white; 
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
 
-        /* --- STYLES UNTUK CUSTOM ALERT MODAL --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px);
@@ -210,22 +220,24 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
             </div>
         </div>
 
-        <table>
-            <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead>
-            <tbody>
-                <?php while ($row = mysqli_fetch_assoc($daftar_barang)): ?>
-                <tr>
-                    <td><strong><?= $row['kode_barang']; ?></strong></td><td><?= $row['nama_barang']; ?></td><td><?= $row['nama_kategori'] ?? 'Tanoa Kategori'; ?></td>
-                    <td><span style="color: <?= ($row['stok'] < 5) ? '#c62828; font-weight:bold;' : '#333'; ?>"><?= $row['stok']; ?> Pcs</span></td>
-                    <td>Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
-                    <td>
-                        <a href="admin.php?action=edit&id=<?= $row['id']; ?>" class="btn-edit">Edit</a>
-                        <button type="button" class="btn-danger" onclick="bukaModalHapus(<?= $row['id']; ?>, '<?= htmlspecialchars($row['nama_barang'], ENT_QUOTES); ?>')">Hapus</button>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead>
+                <tbody>
+                    <?php while ($row = mysqli_fetch_assoc($daftar_barang)): ?>
+                    <tr>
+                        <td><strong><?= $row['kode_barang']; ?></strong></td><td><?= $row['nama_barang']; ?></td><td><?= $row['nama_kategori'] ?? 'Tanpa Kategori'; ?></td>
+                        <td><span style="color: <?= ($row['stok'] < 5) ? '#c62828; font-weight:bold;' : '#333'; ?>"><?= $row['stok']; ?> Pcs</span></td>
+                        <td>Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
+                        <td>
+                            <a href="admin.php?action=edit&id=<?= $row['id']; ?>" class="btn-edit">Edit</a>
+                            <button type="button" class="btn-danger" onclick="bukaModalHapus(<?= $row['id']; ?>, '<?= htmlspecialchars($row['nama_barang'], ENT_QUOTES); ?>')">Hapus</button>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div id="modalHapus" class="modal-overlay">
@@ -245,7 +257,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
             document.getElementById('linkKonfirmasiHapus').href = 'admin.php?action=delete&id=' + id;
             document.getElementById('modalHapus').style.display = 'flex';
         }
-
         function tutupModalHapus() {
             document.getElementById('modalHapus').style.display = 'none';
         }

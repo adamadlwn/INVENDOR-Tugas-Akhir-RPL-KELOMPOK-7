@@ -47,9 +47,25 @@ $daftar_barang = mysqli_query($koneksi, $query);
         .search-container { margin-bottom: 20px; }
         .search-container input { padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: white; }
         .btn-cari { padding: 8px 15px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
+        
+        /* --- KOTAK SCROLL KHUSUS TABEL DATA STAF --- */
+        .table-wrapper {
+            max-height: 450px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+            border: 1px solid #e2e8f0;
+        }
+        table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-        th { background-color: #2e7d32; color: white; }
+        th { 
+            background-color: #2e7d32; 
+            color: white; 
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -68,28 +84,30 @@ $daftar_barang = mysqli_query($koneksi, $query);
                 <?php if($search != ''): ?> <a href="staf.php" style="margin-left: 10px; color: #555;">Reset</a> <?php endif; ?>
             </form>
         </div>
-        <table>
-            <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Status Stok</th><th>Harga</th></tr></thead>
-            <tbody>
-                <?php if(mysqli_num_rows($daftar_barang) > 0): ?>
-                    <?php while ($row = mysqli_fetch_assoc($daftar_barang)): ?>
-                    <tr>
-                        <td><strong><?= $row['kode_barang']; ?></strong></td><td><?= $row['nama_barang']; ?></td><td><?= $row['nama_kategori'] ?? 'Tanpa Kategori'; ?></td>
-                        <td>
-                            <?php if($row['stok'] < 5): ?>
-                                <span style="color: #c62828; font-weight: bold;">⚠️ Sisa <?= $row['stok']; ?> Pcs (Kritis)</span>
-                            <?php else: ?>
-                                <span style="color: #2e7d32;">✔️ Tersedia (<?= $row['stok']; ?> Pcs)</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
-                    </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr><td colspan="5" style="text-align: center; color: #777;">Data tidak ditemukan.</td></tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Status Stok</th><th>Harga</th></tr></thead>
+                <tbody>
+                    <?php if(mysqli_num_rows($daftar_barang) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($daftar_barang)): ?>
+                        <tr>
+                            <td><strong><?= $row['kode_barang']; ?></strong></td><td><?= $row['nama_barang']; ?></td><td><?= $row['nama_kategori'] ?? 'Tanpa Kategori'; ?></td>
+                            <td>
+                                <?php if($row['stok'] < 5): ?>
+                                    <span style="color: #c62828; font-weight: bold;">⚠️ Sisa <?= $row['stok']; ?> Pcs (Kritis)</span>
+                                <?php else: ?>
+                                    <span style="color: #2e7d32;">✔️ Tersedia (<?= $row['stok']; ?> Pcs)</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
+                        </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr><td colspan="5" style="text-align: center; color: #777;">Data tidak ditemukan.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>
