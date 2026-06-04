@@ -83,7 +83,7 @@ $riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat
         <p>LOGIN: <strong><?= strtoupper($_SESSION['role']); ?></strong></p>
         <a href="index.php" class="active">🏠 Dashboard</a>
         <?php if ($_SESSION['role'] === 'admin') : ?>
-            <a href="admin.php">📦 Kelola Barang (CRUD)</a>
+            <a href="admin.php">📦 Kelola Barang</a>
         <?php else : ?>
             <a href="staf.php">👁️ Lihat Stok Barang</a>
         <?php endif; ?>

@@ -176,7 +176,7 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
     <div class="sidebar">
         <h3>INVENDOR</h3>
         <a href="index.php">🏠 Dashboard</a>
-        <a href="admin.php" class="active">📦 Kelola Barang (CRUD)</a>
+        <a href="admin.php" class="active">📦 Kelola Barang</a>
         <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.85); text-align:center; margin-top: 25px; font-weight: bold;">🚪 Keluar</a>
     </div>
     
