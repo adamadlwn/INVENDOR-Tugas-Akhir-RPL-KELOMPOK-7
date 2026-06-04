@@ -1,33 +1,26 @@
 <?php
 session_start();
-// Pastikan hanya user yang sudah login yang bisa akses halaman cetak
 if (!isset($_SESSION['username'])) {
     header("Location: index.php");
     exit;
 }
 require_once 'koneksi.php';
 
-// Ambil data barang lengkap dengan kategori dan supplier
-$query = "SELECT b.*, k.nama_kategori, s.nama_supplier 
-          FROM barang b 
-          LEFT JOIN kategori k ON b.id_kategori = k.id 
-          LEFT JOIN supplier s ON b.id_supplier = s.id 
-          ORDER BY b.kode_barang ASC";
-$daftar_barang = mysqli_query($koneksi, $query);
-
-// Ambil total ringkasan untuk header laporan
-$total_jenis = mysqli_num_rows($daftar_barang);
-$total_stok_query = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(stok) AS total FROM barang"));
-$total_stok = $total_stok_query['total'] ?? 0;
+// Query mengambil seluruh riwayat aktivitas dan nama aktornya
+$query = "SELECT r.*, u.nama_lengkap FROM riwayat_stok r 
+          LEFT JOIN users u ON r.id_user = u.id 
+          ORDER BY r.id DESC";
+$daftar_riwayat = mysqli_query($koneksi, $query);
+$total_aktivitas = mysqli_num_rows($daftar_riwayat);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Laporan_Stok_INVENDOR_<?= date('Y-m-d'); ?></title>
+    <title>Jurnal_Mutasi_INVENDOR_<?= date('Y-m-d'); ?></title>
     <style>
         body {
-            font-family: 'Courier New', Courier, monospace; /* Gaya font khas laporan formal */
+            font-family: 'Courier New', Courier, monospace;
             color: #000;
             background: #fff;
             padding: 10px;
@@ -65,10 +58,14 @@ $total_stok = $total_stok_query['total'] ?? 0;
             print-color-adjust: exact;
             font-weight: bold;
         }
-        .text-right { text-align: right; }
         .text-center { text-align: center; }
         
-        /* Tanda Tangan di Bawah (Poin Nilai Plus dari Dosen) */
+        .badge-text {
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+        }
+
         .ttd-container {
             margin-top: 50px;
             display: flex;
@@ -82,17 +79,12 @@ $total_stok = $total_stok_query['total'] ?? 0;
             height: 70px;
         }
 
-        /* CSS Pengatur Layout Saat Menjadi PDF */
         @media print {
-            @page {
-                size: A4 portrait;
-                margin: 15mm;
-            }
+            @page { size: A4 portrait; margin: 15mm; }
             body { margin: 0; }
             .no-print { display: none; }
         }
         
-        /* Tombol melayang kembali / cetak manual jika otomatisnya gagal */
         .no-print-floating {
             position: fixed; top: 20px; left: 20px;
             background: #2e7d32; color: white; padding: 10px 15px;
@@ -103,23 +95,22 @@ $total_stok = $total_stok_query['total'] ?? 0;
 </head>
 <body>
 
-    <!-- Tombol ini otomatis hilang saat dokumen disimpan jadi PDF atau dicetak -->
     <a href="index.php" class="no-print-floating no-print">⬅️ Kembali ke Dashboard</a>
 
     <div class="header-laporan">
         <h1>SISTEM MANAJEMEN GUDANG - INVENDOR</h1>
         <p>Gedung Logistik Utama, Lantai 2 • Telp: (021) 555-1234 • Email: gudang@invendor.com</p>
-        <p><strong>LAPORAN BERKALA PERSEDIAAN STOK BARANG & SUPPLIER</strong></p>
+        <p><strong>AUDIT TRAIL REPORT: LAPORAN JURNAL MUTASI STOK GUDANG</strong></p>
     </div>
 
     <div class="meta-laporan">
         <div>
             <p>Tanggal Cetak : <strong><?= date('d F Y / H:i'); ?> WITA</strong></p>
-            <p>Oleh Operator : <strong><?= $_SESSION['nama_lengkap']; ?> (<?= strtoupper($_SESSION['role']); ?>)</strong></p>
+            <p>Dicetak Oleh   : <strong><?= $_SESSION['nama_lengkap']; ?> (<?= strtoupper($_SESSION['role']); ?>)</strong></p>
         </div>
         <div style="text-align: right;">
-            <p>Total Jenis Barang : <strong><?= $total_jenis; ?> SKU</strong></p>
-            <p>Total Muatan Stok  : <strong><?= $total_stok; ?> Pcs</strong></p>
+            <p>Total Rekam Aktivitas : <strong><?= $total_aktivitas; ?> Entri Log</strong></p>
+            <p>Status Dokumen        : <strong>Dokumen Audit Sah</strong></p>
         </div>
     </div>
 
@@ -127,37 +118,31 @@ $total_stok = $total_stok_query['total'] ?? 0;
         <thead>
             <tr>
                 <th width="5%" class="text-center">No</th>
-                <th width="15%">Kode Barang</th>
-                <th width="25%">Nama Item Barang</th>
-                <th width="15%">Kategori</th>
-                <th width="20%">Pemasok (Supplier)</th>
-                <th width="10%" class="text-center">Stok</th>
-                <th width="15%" class="text-right">Harga Satuan</th>
+                <th width="20%">Waktu Kejadian</th>
+                <th width="15%">Operator System</th>
+                <th width="15%">Aktivitas</th>
+                <th width="45%">Detail Keterangan Kronologi Perubahan Data</th>
             </tr>
         </thead>
         <tbody>
             <?php 
             $no = 1;
-            if(mysqli_num_rows($daftar_barang) > 0):
-                while($row = mysqli_fetch_assoc($daftar_barang)): 
+            if(mysqli_num_rows($daftar_riwayat) > 0):
+                while($row = mysqli_fetch_assoc($daftar_riwayat)): 
             ?>
                 <tr>
                     <td class="text-center"><?= $no++; ?></td>
-                    <td><strong><?= $row['kode_barang']; ?></strong></td>
-                    <td><?= $row['nama_barang']; ?></td>
-                    <td><?= $row['nama_kategori'] ?? 'Uncategorized'; ?></td>
-                    <td><?= $row['nama_supplier'] ?? '-'; ?></td>
-                    <td class="text-center" <?= ($row['stok'] < 5) ? 'style="font-weight:bold; color:red;"' : ''; ?>>
-                        <?= $row['stok']; ?> Pcs
-                    </td>
-                    <td class="text-right">Rp <?= number_format($row['harga'], 0, ',', '.'); ?></td>
+                    <td><?= $row['tanggal']; ?></td>
+                    <td><strong><?= $row['nama_lengkap']; ?></strong></td>
+                    <td class="badge-text"><?= $row['jenis_perubahan']; ?></td>
+                    <td><?= $row['keterangan']; ?></td>
                 </tr>
             <?php 
                 endwhile;
             else:
             ?>
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 20px; color: #777;">Tidak ada data logistik di dalam database.</td>
+                    <td colspan="5" class="text-center" style="padding: 20px; color: #777;">Belum ada riwayat mutasi barang di database.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -167,14 +152,13 @@ $total_stok = $total_stok_query['total'] ?? 0;
         <div class="ttd-box">
             <p>Jakarta, <?= date('d F Y'); ?></p>
             <p>Mengetahui,</p>
-            <p><strong>Kepala Otoritas Gudang</strong></p>
+            <p><strong>Kepala Inspektur Audit Logistik</strong></p>
             <div class="ttd-space"></div>
             <p style="text-decoration: underline;"><strong>(...........................)</strong></p>
-            <p style="font-size: 11px; color: #555;">NIP. <?= date('Ymd'); ?>0122</p>
+            <p style="font-size: 11px; color: #555;">NIP. <?= date('Ymd'); ?>0299</p>
         </div>
     </div>
 
-    <!-- SCRIPT OTOMATIS MEMBUKA JENDELA SIMPAN PDF / CETAK BROWSER -->
     <script>
         window.onload = function() {
             window.print();

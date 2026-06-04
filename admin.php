@@ -9,7 +9,6 @@ require_once 'koneksi.php';
 $id_edit = ''; $kode = ''; $nama = ''; $id_kategori_pilih = ''; $id_supplier_pilih = ''; $stok = ''; $harga = '';
 $is_edit = false;
 
-// Auto-generate kode barang
 if (!$is_edit) {
     $query_max = mysqli_query($koneksi, "SELECT kode_barang FROM barang ORDER BY id DESC LIMIT 1");
     if (mysqli_num_rows($query_max) > 0) {
@@ -18,12 +17,9 @@ if (!$is_edit) {
         $num = (int)substr($last_code, 3);
         $num++;
         $kode = "BRG" . sprintf("%03d", $num);
-    } else {
-        $kode = "BRG001";
-    }
+    } else { $kode = "BRG001"; }
 }
 
-// Proses Tambah Kategori
 if (isset($_POST['tambah_kategori'])) {
     $kategori_baru = mysqli_real_escape_string($koneksi, $_POST['nama_kategori_baru']);
     if (!empty($kategori_baru)) {
@@ -32,24 +28,20 @@ if (isset($_POST['tambah_kategori'])) {
             mysqli_query($koneksi, "INSERT INTO kategori (nama_kategori) VALUES ('$kategori_baru')");
         }
     }
-    header("Location: admin.php");
-    exit;
+    header("Location: admin.php"); exit;
 }
 
-// Proses Tambah Supplier Baru
 if (isset($_POST['tambah_supplier'])) {
     $nama_sp = mysqli_real_escape_string($koneksi, $_POST['nama_supplier']);
     $telp_sp = mysqli_real_escape_string($koneksi, $_POST['telepon']);
     $alamat_sp = mysqli_real_escape_string($koneksi, $_POST['alamat']);
-    
     if (!empty($nama_sp)) {
         mysqli_query($koneksi, "INSERT INTO supplier (nama_supplier, telepon, alamat) VALUES ('$nama_sp', '$telp_sp', '$alamat_sp')");
     }
-    header("Location: admin.php");
-    exit;
+    header("Location: admin.php"); exit;
 }
 
-// Proses Simpan / Edit Barang
+// PROSES SIMPAN / EDIT BARANG (SUDAH DI-UPGRADE LOGIKA AUDIT-NYA)
 if (isset($_POST['simpan'])) {
     $nama = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
     $id_kategori = (int)$_POST['id_kategori'];
@@ -60,13 +52,35 @@ if (isset($_POST['simpan'])) {
 
     if ($_POST['id_edit'] != '') {
         $id = $_POST['id_edit'];
-        $lama = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT stok FROM barang WHERE id=$id"));
+        
+        // 1. Tarik info data lama (Stok, Harga, dan Nama Supplier lama)
+        $lama = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT b.stok, b.harga, s.nama_supplier FROM barang b LEFT JOIN supplier s ON b.id_supplier = s.id WHERE b.id=$id"));
         $stok_lama = $lama['stok'];
+        $harga_lama = $lama['harga'];
+        $supplier_lama = $lama['nama_supplier'] ?? 'Belum Ada Supplier';
+        
+        // 2. Cari tahu nama supplier baru berdasarkan ID yang dipilih di form
+        $sp_baru_row = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT nama_supplier FROM supplier WHERE id=$id_supplier"));
+        $supplier_baru = $sp_baru_row['nama_supplier'] ?? 'Belum Ada Supplier';
+        
         $selisih = $stok - $stok_lama;
         
+        // 3. Menyusun string audit perubahan secara dinamis
+        $perubahan_detail = [];
+        if ($stok != $stok_lama) { $perubahan_detail[] = "Stok ($stok_lama -> $stok)"; }
+        if ($harga != $harga_lama) { $perubahan_detail[] = "Harga (Rp " . number_format($harga_lama,0,',','.') . " -> Rp " . number_format($harga,0,',','.') . ")"; }
+        if ($supplier_baru !== $supplier_lama) { $perubahan_detail[] = "Supplier ($supplier_lama -> $supplier_baru)"; }
+        
+        if (empty($perubahan_detail)) {
+            $ket_log = "Memperbarui data identitas barang [$nama] (Tidak ada perubahan angka/supplier)";
+        } else {
+            $ket_log = "Memperbarui data barang [$nama]: " . implode(", ", $perubahan_detail);
+        }
+        
+        // 4. Jalankan Query Update Data Barang
         mysqli_query($koneksi, "UPDATE barang SET nama_barang='$nama', id_kategori=$id_kategori, id_supplier=$id_supplier, stok=$stok, harga=$harga WHERE id=$id");
         
-        $ket_log = "Memperbarui data barang [$nama]. Stok diubah dari $stok_lama menjadi $stok.";
+        // 5. Masukkan rekam jejak mendalam ke Jurnal Riwayat
         $ket_log_aman = mysqli_real_escape_string($koneksi, $ket_log);
         mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'PROSES EDIT', $selisih, $user_id, '$ket_log_aman')");
     } else {
@@ -78,11 +92,9 @@ if (isset($_POST['simpan'])) {
         $ket_log_baru_aman = mysqli_real_escape_string($koneksi, $ket_log_baru);
         mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($new_id, 'BARANG MASUK', $stok, $user_id, '$ket_log_baru_aman')");
     }
-    header("Location: admin.php");
-    exit;
+    header("Location: admin.php"); exit;
 }
 
-// Mengambil data untuk Form Edit
 if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     $id = $_GET['id'];
     $result = mysqli_query($koneksi, "SELECT * FROM barang WHERE id=$id");
@@ -93,26 +105,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     }
 }
 
-// Proses Hapus Barang
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
-    $id = $_GET['id'];
-    $user_id = $_SESSION['id_user'];
+    $id = $_GET['id']; $user_id = $_SESSION['id_user'];
     $b = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT nama_barang, stok FROM barang WHERE id=$id"));
-    $nama_b = $b['nama_barang'] ?? 'Barang';
-    $stok_b = $b['stok'] ?? 0;
+    $nama_b = $b['nama_barang'] ?? 'Barang'; $stok_b = $b['stok'] ?? 0;
     
     $ket_log_hapus = "Menghapus barang dari sistem: $nama_b (Stok terakhir: $stok_b Pcs)";
     $ket_log_hapus_aman = mysqli_real_escape_string($koneksi, $ket_log_hapus);
     mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES (NULL, 'BARANG DIHAPUS', -$stok_b, $user_id, '$ket_log_hapus_aman')");
     mysqli_query($koneksi, "DELETE FROM barang WHERE id=$id");
-    header("Location: admin.php");
-    exit;
+    header("Location: admin.php"); exit;
 }
 
 $kategori_options = mysqli_query($koneksi, "SELECT * FROM kategori ORDER BY nama_kategori ASC");
 $supplier_options = mysqli_query($koneksi, "SELECT * FROM supplier ORDER BY nama_supplier ASC");
-
-// Query JOIN 3 Tabel (barang + kategori + supplier)
 $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_supplier FROM barang b LEFT JOIN kategori k ON b.id_kategori = k.id LEFT JOIN supplier s ON b.id_supplier = s.id ORDER BY b.id DESC");
 ?>
 <!DOCTYPE html>
@@ -125,9 +131,7 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { 
             background: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070') no-repeat center center fixed; 
-            background-size: cover;
-            display: flex; 
-            min-height: 100vh; 
+            background-size: cover; display: flex; min-height: 100vh; 
         }
         .sidebar { 
             width: 260px; background: rgba(27, 94, 32, 0.75); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
@@ -156,6 +160,7 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         th { background-color: #2e7d32; color: white; position: sticky; top: 0; z-index: 10; }
+        tbody tr:hover td { background-color: rgba(46, 125, 50, 0.06); }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px);
@@ -179,7 +184,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
         <div class="header"><h2>Manajemen Stok & Supplier (Admin)</h2></div>
         
         <div class="management-zone">
-            <!-- FORM INPUT BARANG -->
             <div class="form-container">
                 <h3><?= $is_edit ? '⚙️ Ubah Data Barang' : '➕ Tambah Barang Baru'; ?></h3>
                 <form action="admin.php" method="POST" style="margin-top: 15px;">
@@ -216,7 +220,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
                 </form>
             </div>
 
-            <!-- FORM ENTITAS SAMPINGAN (KATEGORI & SUPPLIER) -->
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 <div class="form-container" style="border-left: 4px solid #0284c7; padding: 15px;">
                     <h3>📁 Kategori Baru</h3>
@@ -225,7 +228,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
                         <button type="submit" name="tambah_kategori" class="btn btn-primary" style="width:auto; padding:6px 12px;">➕</button>
                     </form>
                 </div>
-
                 <div class="form-container" style="border-left: 4px solid #e65100; padding: 15px;">
                     <h3>🏢 Supplier Baru</h3>
                     <form action="admin.php" method="POST" style="margin-top: 10px;">
@@ -238,7 +240,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
             </div>
         </div>
 
-        <!-- TABEL UTAMA BARANG -->
         <div class="table-wrapper">
             <table>
                 <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Supplier</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead>
@@ -262,7 +263,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori, s.nama_sup
         </div>
     </div>
 
-    <!-- MODAL HAPUS -->
     <div id="modalHapus" class="modal-overlay">
         <div class="modal-box">
             <h3 style="color:#c62828;">⚠️ Konfirmasi Hapus</h3>
