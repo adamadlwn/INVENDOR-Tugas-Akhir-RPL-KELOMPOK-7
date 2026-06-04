@@ -9,7 +9,6 @@ require_once 'koneksi.php';
 $id_edit = ''; $kode = ''; $nama = ''; $id_kategori_pilih = ''; $stok = ''; $harga = '';
 $is_edit = false;
 
-// --- LOGIKA OTOMATIS GENERATE KODE BARANG ---
 if (!$is_edit) {
     $query_max = mysqli_query($koneksi, "SELECT kode_barang FROM barang ORDER BY id DESC LIMIT 1");
     if (mysqli_num_rows($query_max) > 0) {
@@ -23,11 +22,9 @@ if (!$is_edit) {
     }
 }
 
-// --- PROSES TAMBAH KATEGORI BARU ---
 if (isset($_POST['tambah_kategori'])) {
     $kategori_baru = mysqli_real_escape_string($koneksi, $_POST['nama_kategori_baru']);
     if (!empty($kategori_baru)) {
-        // Cek apakah kategori sudah ada
         $cek = mysqli_query($koneksi, "SELECT * FROM kategori WHERE nama_kategori = '$kategori_baru'");
         if (mysqli_num_rows($cek) == 0) {
             mysqli_query($koneksi, "INSERT INTO kategori (nama_kategori) VALUES ('$kategori_baru')");
@@ -37,7 +34,6 @@ if (isset($_POST['tambah_kategori'])) {
     exit;
 }
 
-// --- PROSES SIMPAN / EDIT BARANG ---
 if (isset($_POST['simpan'])) {
     $nama = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
     $id_kategori = (int)$_POST['id_kategori'];
@@ -46,7 +42,6 @@ if (isset($_POST['simpan'])) {
     $user_id = $_SESSION['id_user'];
 
     if ($_POST['id_edit'] != '') {
-        // Update
         $id = $_POST['id_edit'];
         $lama = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT stok FROM barang WHERE id=$id"));
         $stok_lama = $lama['stok'];
@@ -54,28 +49,22 @@ if (isset($_POST['simpan'])) {
         
         mysqli_query($koneksi, "UPDATE barang SET nama_barang='$nama', id_kategori=$id_kategori, stok=$stok, harga=$harga WHERE id=$id");
         
-        // Mengamankan teks log dari tabrakan tanda petik
         $ket_log = "Memperbarui data barang [$nama]. Stok diubah dari $stok_lama menjadi $stok.";
         $ket_log_aman = mysqli_real_escape_string($koneksi, $ket_log);
-        
         mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'PROSES EDIT', $selisih, $user_id, '$ket_log_aman')");
     } else {
-        // Insert Baru
         $kode_baru = $_POST['kode_barang'];
         mysqli_query($koneksi, "INSERT INTO barang (kode_barang, nama_barang, id_kategori, stok, harga, id_user) VALUES ('$kode_baru', '$nama', $id_kategori, $stok, $harga, $user_id)");
         $new_id = mysqli_insert_id($koneksi);
         
-        // Mengamankan teks log dari tabrakan tanda petik
         $ket_log_baru = "Menambahkan barang baru: $nama dengan stok awal $stok Pcs";
         $ket_log_baru_aman = mysqli_real_escape_string($koneksi, $ket_log_baru);
-        
         mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($new_id, 'BARANG MASUK', $stok, $user_id, '$ket_log_baru_aman')");
     }
     header("Location: admin.php");
     exit;
 }
 
-// --- AMBIL DATA EDIT ---
 if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     $id = $_GET['id'];
     $result = mysqli_query($koneksi, "SELECT * FROM barang WHERE id=$id");
@@ -85,19 +74,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     }
 }
 
-// --- PROSES HAPUS ---
 if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
     $user_id = $_SESSION['id_user'];
-    
     $b = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT nama_barang, stok FROM barang WHERE id=$id"));
     $nama_b = $b['nama_barang'] ?? 'Barang';
     $stok_b = $b['stok'] ?? 0;
     
-    // Mengamankan teks log hapus dari tabrakan tanda petik
     $ket_log_hapus = "Menghapus barang dari sistem: $nama_b (Stok terakhir: $stok_b Pcs)";
     $ket_log_hapus_aman = mysqli_real_escape_string($koneksi, $ket_log_hapus);
-    
     mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES (NULL, 'BARANG DIHAPUS', -$stok_b, $user_id, '$ket_log_hapus_aman')");
     mysqli_query($koneksi, "DELETE FROM barang WHERE id=$id");
     header("Location: admin.php");
@@ -115,24 +100,40 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #f4f7f6; display: flex; min-height: 100vh; }
-        .sidebar { width: 250px; background-color: #1b5e20; color: white; padding: 20px; }
+        body { 
+            background: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070') no-repeat center center fixed; 
+            background-size: cover;
+            display: flex; 
+            min-height: 100vh; 
+        }
+        .sidebar { 
+            width: 260px; 
+            background: rgba(27, 94, 32, 0.75); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            color: white; 
+            padding: 25px 20px; 
+            border-right: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+        }
         .sidebar h3 { text-align: center; margin-bottom: 30px; font-weight: 700; }
-        .sidebar a { display: block; color: #cbd5e1; padding: 12px; text-decoration: none; border-radius: 5px; margin-bottom: 10px; }
-        .sidebar a:hover, .sidebar a.active { background-color: #2e7d32; color: white; font-weight: bold; }
-        .main-content { flex-grow: 1; padding: 40px; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        .sidebar a { display: block; color: #cbd5e1; padding: 12px; text-decoration: none; border-radius: 8px; margin-bottom: 10px; transition: 0.3s; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255,255,255,0.2); color: white; font-weight: bold; }
+        
+        .main-content { flex-grow: 1; padding: 40px; background: rgba(244, 247, 246, 0.85); min-height: 100vh; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 15px; }
         .management-zone { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px; }
-        .form-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .form-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; display: inline-block; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; display: inline-block; }
         .btn-success { background-color: #2e7d32; }
         .btn-primary { background-color: #0284c7; width: 100%; }
         .btn-danger { background-color: #c62828; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; }
         .btn-edit { background-color: #0284c7; color: white; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; margin-right: 5px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.01); }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         th { background-color: #2e7d32; color: white; }
     </style>
@@ -142,13 +143,12 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
         <h3>INVENDOR</h3>
         <a href="index.php">🏠 Dashboard</a>
         <a href="admin.php" class="active">📦 Kelola Barang (CRUD)</a>
-        <a href="logout.php" style="background-color: #c62828; text-align:center; margin-top:50px;">🚪 Keluar</a>
+        <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.8); text-align:center; margin-top:auto;">🚪 Keluar</a>
     </div>
     <div class="main-content">
         <div class="header"><h2>Manajemen Stok Barang (Admin)</h2></div>
         
         <div class="management-zone">
-            <!-- Form Barang -->
             <div class="form-container">
                 <h3><?= $is_edit ? '⚙️ Ubah Data Barang' : '➕ Tambah Barang Baru'; ?></h3>
                 <form action="admin.php" method="POST" style="margin-top: 15px;">
@@ -176,7 +176,6 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
                 </form>
             </div>
 
-            <!-- Form Tambah Kategori Baru -->
             <div class="form-container" style="border-left: 4px solid #0284c7;">
                 <h3>📁 Kategori Baru</h3>
                 <form action="admin.php" method="POST" style="margin-top: 15px;">

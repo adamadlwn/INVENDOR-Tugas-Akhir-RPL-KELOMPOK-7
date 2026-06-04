@@ -23,17 +23,33 @@ $daftar_barang = mysqli_query($koneksi, $query);
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #f4f7f6; display: flex; min-height: 100vh; }
-        .sidebar { width: 250px; background-color: #1b5e20; color: white; padding: 20px; }
+        body { 
+            background: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070') no-repeat center center fixed; 
+            background-size: cover;
+            display: flex; 
+            min-height: 100vh; 
+        }
+        .sidebar { 
+            width: 260px; 
+            background: rgba(27, 94, 32, 0.75); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            color: white; 
+            padding: 25px 20px; 
+            border-right: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+        }
         .sidebar h3 { text-align: center; margin-bottom: 30px; font-weight: 700; }
-        .sidebar a { display: block; color: #cbd5e1; padding: 12px; text-decoration: none; border-radius: 5px; margin-bottom: 10px; }
-        .sidebar a:hover, .sidebar a.active { background-color: #2e7d32; color: white; font-weight: bold; }
-        .main-content { flex-grow: 1; padding: 40px; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        .sidebar a { display: block; color: #cbd5e1; padding: 12px; text-decoration: none; border-radius: 8px; margin-bottom: 10px; transition: 0.3s; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255,255,255,0.2); color: white; font-weight: bold; }
+        
+        .main-content { flex-grow: 1; padding: 40px; background: rgba(244, 247, 246, 0.85); min-height: 100vh; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 15px; }
         .search-container { margin-bottom: 20px; }
-        .search-container input { padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        .btn-cari { padding: 8px 15px; background-color: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        .search-container input { padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; background: white; }
+        .btn-cari { padding: 8px 15px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         th { background-color: #2e7d32; color: white; }
     </style>
@@ -43,7 +59,7 @@ $daftar_barang = mysqli_query($koneksi, $query);
         <h3>INVENDOR</h3>
         <a href="index.php">🏠 Dashboard</a>
         <a href="staf.php" class="active">👁️ Lihat Stok Barang</a>
-        <a href="logout.php" style="background-color: #c62828; text-align:center; margin-top:50px;">🚪 Keluar</a>
+        <a href="logout.php" style="background-color: rgba(198, 40, 40, 0.8); text-align:center; margin-top:auto;">🚪 Keluar</a>
     </div>
     <div class="main-content">
         <div class="header"><h2>Daftar Informasi Stok (Staf)</h2></div>

@@ -35,17 +35,35 @@ if (isset($_POST['login'])) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-container { background: #ffffff; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid #2e7d32; }
+        body { 
+            background: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070') no-repeat center center fixed; 
+            background-size: cover;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+        }
+        /* Efek Glassmorphism Wadah Login */
+        .login-container { 
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15); 
+            width: 100%; 
+            max-width: 400px; 
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
         h2 { text-align: center; color: #1b5e20; font-weight: 700; letter-spacing: 1px; margin-bottom: 5px; }
-        p.subtitle { text-align: center; color: #777; font-size: 13px; margin-bottom: 25px; }
+        p.subtitle { text-align: center; color: #444; font-size: 13px; margin-bottom: 25px; font-weight: 400; }
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; font-size: 14px; }
-        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; }
-        .form-group input:focus { border-color: #2e7d32; }
-        .btn-login { width: 100%; padding: 12px; background-color: #2e7d32; border: none; border-radius: 6px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .btn-login:hover { background-color: #1b5e20; }
-        .alert { background-color: #ffebee; color: #c62828; padding: 12px; border-radius: 6px; font-size: 14px; margin-bottom: 20px; text-align: center; border: 1px solid #ffcdd2; }
+        .form-group label { display: block; margin-bottom: 8px; color: #222; font-weight: 600; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; font-size: 14px; outline: none; background: rgba(255,255,255,0.8); }
+        .form-group input:focus { border-color: #1b5e20; background: #fff; }
+        .btn-login { width: 100%; padding: 12px; background-color: #1b5e20; border: none; border-radius: 8px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-login:hover { background-color: #2e7d32; box-shadow: 0 4px 12px rgba(27,94,32,0.3); }
+        .alert { background-color: rgba(239, 68, 68, 0.2); color: #b91c1c; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3); backdrop-filter: blur(5px); }
     </style>
 </head>
 <body>
