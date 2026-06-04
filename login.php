@@ -31,13 +31,14 @@ if (isset($_POST['login'])) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Invendor</title>
+    <title>Login - INVENDOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .login-container { background: #ffffff; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 400px; border-top: 5px solid #2e7d32; }
-        h2 { text-align: center; color: #333; margin-bottom: 5px; }
-        p.subtitle { text-align: center; color: #777; font-size: 14px; margin-bottom: 25px; }
+        h2 { text-align: center; color: #1b5e20; font-weight: 700; letter-spacing: 1px; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #777; font-size: 13px; margin-bottom: 25px; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 600; font-size: 14px; }
         .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; }
@@ -49,7 +50,7 @@ if (isset($_POST['login'])) {
 </head>
 <body>
 <div class="login-container">
-    <h2>Invendor</h2>
+    <h2>INVENDOR</h2>
     <p class="subtitle">Sistem Manajemen Inventaris UMKM</p>
     <?php if (!empty($error)) : ?><div class="alert"><?= $error; ?></div><?php endif; ?>
     <form action="" method="POST">
