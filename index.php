@@ -12,8 +12,8 @@ $data_stok = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT SUM(stok) AS tota
 $total_stok_tampil = $data_stok['total_stok'] ?? 0;
 $data_menipis = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) AS stok_menipis FROM barang WHERE stok < 5"));
 
-// Ambil 5 Log Aktivitas Terakhir (Nilai Plus Pengganti CRUD Generik)
-$riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat_stok r LEFT JOIN users u ON r.id_user = u.id ORDER BY r.id DESC LIMIT 5");
+// Ambil Seluruh Log Aktivitas Terakhir (Berfungsi sebagai Tabel Rekening Koran/Mutasi Stok untuk Pemilik Toko)
+$riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat_stok r LEFT JOIN users u ON r.id_user = u.id ORDER BY r.id DESC LIMIT 10");
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -36,10 +36,17 @@ $riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat
         .card.warning { border-left-color: #d84315; }
         .card h4 { color: #64748b; font-size: 13px; text-transform: uppercase; margin-bottom: 10px; }
         .card p { font-size: 28px; font-weight: 700; color: #1e293b; }
-        .log-box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); margin-top: 20px; }
-        .log-box h3 { color: #334155; margin-bottom: 15px; font-size: 18px; }
-        .log-item { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #475569; }
-        .log-item small { color: #94a3b8; margin-left: 10px; }
+        
+        /* Gaya Desain Tabel Log Baru */
+        .log-container { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .log-container h3 { color: #1e293b; margin-bottom: 15px; font-size: 18px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; text-transform: uppercase; }
+        .bg-masuk { background-color: #2e7d32; }
+        .bg-edit { background-color: #0284c7; }
+        .bg-hapus { background-color: #c62828; }
     </style>
 </head>
 <body>
@@ -74,14 +81,38 @@ $riwayat_query = mysqli_query($koneksi, "SELECT r.*, u.nama_lengkap FROM riwayat
             </div>
         </div>
         
-        <div class="log-box">
-            <h3>📋 Riwayat Aktivitas Log Sistem (Live)</h3>
-            <?php while($log = mysqli_fetch_assoc($riwayat_query)): ?>
-                <div class="log-item">
-                    🔹 <strong><?= $log['nama_lengkap']; ?></strong>: <?= $log['keterangan']; ?> 
-                    <small>🕒 <?= $log['tanggal']; ?></small>
-                </div>
-            <?php endwhile; ?>
+        <!-- FITUR UTAMA TABEL MUTASI / AUDIT LOG UNTUK PEMILIK WEB -->
+        <div class="log-container">
+            <h3>📋 Jurnal Mutasi Stok & Riwayat Aktivitas Sistem</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Waktu Kejadian</th>
+                        <th>Aktor (User)</th>
+                        <th>Aktivitas</th>
+                        <th>Detail Keterangan Riwayat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if(mysqli_num_rows($riwayat_query) > 0): ?>
+                        <?php while($log = mysqli_fetch_assoc($riwayat_query)): 
+                            // Pilih warna badge berdasarkan tipe aktivitas
+                            $badge_class = 'bg-edit';
+                            if($log['jenis_perubahan'] === 'BARANG MASUK') $badge_class = 'bg-masuk';
+                            if($log['jenis_perubahan'] === 'BARANG DIHAPUS') $badge_class = 'bg-hapus';
+                        ?>
+                            <tr>
+                                <td style="color: #94a3b8; font-size: 13px;"><?= $log['tanggal']; ?></td>
+                                <td><strong><?= $log['nama_lengkap']; ?></strong></td>
+                                <td><span class="badge <?= $badge_class; ?>"><?= $log['jenis_perubahan']; ?></span></td>
+                                <td style="color: #475569;"><?= $log['keterangan']; ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr><td colspan="4" style="text-align: center; color: #aaa;">Belum ada riwayat aktivitas.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </body>

@@ -23,7 +23,21 @@ if (!$is_edit) {
     }
 }
 
-// --- PROSES SIMPAN / EDIT ---
+// --- PROSES TAMBAH KATEGORI BARU (FITUR BARU) ---
+if (isset($_POST['tambah_kategori'])) {
+    $kategori_baru = mysqli_real_escape_string($koneksi, $_POST['nama_kategori_baru']);
+    if (!empty($kategori_baru)) {
+        // Cek apakah kategori sudah ada
+        $cek = mysqli_query($koneksi, "SELECT * FROM kategori WHERE nama_kategori = '$kategori_baru'");
+        if (mysqli_num_rows($cek) == 0) {
+            mysqli_query($koneksi, "INSERT INTO kategori (nama_kategori) VALUES ('$kategori_baru')");
+        }
+    }
+    header("Location: admin.php");
+    exit;
+}
+
+// --- PROSES SIMPAN / EDIT BARANG ---
 if (isset($_POST['simpan'])) {
     $nama = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
     $id_kategori = (int)$_POST['id_kategori'];
@@ -32,21 +46,24 @@ if (isset($_POST['simpan'])) {
     $user_id = $_SESSION['id_user'];
 
     if ($_POST['id_edit'] != '') {
-        // Update
+        // Ambil data stok lama untuk perbandingan log
         $id = $_POST['id_edit'];
-        $kode_lama = $_POST['kode_barang'];
+        $lama = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT stok FROM barang WHERE id=$id"));
+        $stok_lama = $lama['stok'];
+        $selisih = $stok - $stok_lama;
+        
         mysqli_query($koneksi, "UPDATE barang SET nama_barang='$nama', id_kategori=$id_kategori, stok=$stok, harga=$harga WHERE id=$id");
         
-        // Catat Log Audit
-        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'update_stok', $stok, $user_id, 'Memperbarui data barang: $nama (Stok sekarang: $stok)')");
+        // Tentukan keterangan log keluar/masuk
+        $ket_log = "Memperbarui barang '$nama'. Stok diubah dari $stok_lama menjadi $stok.";
+        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'PROSES EDIT', $selisih, $user_id, '$ket_log')");
     } else {
-        // Insert Baru dengan Kode Otomatis
+        // Insert Baru
         $kode_baru = $_POST['kode_barang'];
         mysqli_query($koneksi, "INSERT INTO barang (kode_barang, nama_barang, id_kategori, stok, harga, id_user) VALUES ('$kode_baru', '$nama', $id_kategori, $stok, $harga, $user_id)");
         $new_id = mysqli_insert_id($koneksi);
         
-        // Catat Log Audit
-        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($new_id, 'tambah_barang', $stok, $user_id, 'Menambahkan barang baru: $nama dengan stok $stok')");
+        mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($new_id, 'BARANG MASUK', $stok, $user_id, 'Menambahkan barang baru: $nama dengan stok awal $stok Pcs')");
     }
     header("Location: admin.php");
     exit;
@@ -67,17 +84,17 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
     $user_id = $_SESSION['id_user'];
     
-    // Ambil nama barang sebelum dihapus untuk kepentingan log
-    $b = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT nama_barang FROM barang WHERE id=$id"));
+    $b = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT nama_barang, stok FROM barang WHERE id=$id"));
     $nama_b = $b['nama_barang'] ?? 'Barang';
+    $stok_b = $b['stok'] ?? 0;
     
-    mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES (NULL, 'hapus_barang', 0, $user_id, 'Menghapus barang: $nama_b')");
+    mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES (NULL, 'BARANG DIHAPUS', -$stok_b, $user_id, 'Menghapus barang dari sistem: $nama_b (Stok terakhir: $stok_b Pcs)')");
     mysqli_query($koneksi, "DELETE FROM barang WHERE id=$id");
     header("Location: admin.php");
     exit;
 }
 
-$kategori_options = mysqli_query($koneksi, "SELECT * FROM kategori");
+$kategori_options = mysqli_query($koneksi, "SELECT * FROM kategori ORDER BY nama_kategori ASC");
 $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang b LEFT JOIN kategori k ON b.id_kategori = k.id ORDER BY b.id DESC");
 ?>
 <!DOCTYPE html>
@@ -95,15 +112,17 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
         .sidebar a:hover, .sidebar a.active { background-color: #2e7d32; color: white; font-weight: bold; }
         .main-content { flex-grow: 1; padding: 40px; }
         .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
-        .form-container { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .management-zone { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .form-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; }
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; display: inline-block; }
         .btn-success { background-color: #2e7d32; }
+        .btn-primary { background-color: #0284c7; width: 100%; }
         .btn-danger { background-color: #c62828; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; }
         .btn-edit { background-color: #0284c7; color: white; text-decoration: none; padding: 5px 10px; font-size: 12px; border-radius: 3px; margin-right: 5px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.01); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
         th { background-color: #2e7d32; color: white; }
     </style>
@@ -117,32 +136,49 @@ $daftar_barang = mysqli_query($koneksi, "SELECT b.*, k.nama_kategori FROM barang
     </div>
     <div class="main-content">
         <div class="header"><h2>Manajemen Stok Barang (Admin)</h2></div>
-        <div class="form-container">
-            <h3><?= $is_edit ? 'Ubah Data Barang' : 'Tambah Barang Baru'; ?></h3>
-            <form action="admin.php" method="POST" style="margin-top: 15px;">
-                <input type="hidden" name="id_edit" value="<?= $id_edit; ?>">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Kode Barang (Otomatis)</label>
-                        <input type="text" name="kode_barang" value="<?= $kode; ?>" readonly style="background-color: #e9ecef; font-weight: bold; color: #495057;">
+        
+        <div class="management-zone">
+            <!-- Form Barang -->
+            <div class="form-container">
+                <h3><?= $is_edit ? '⚙️ Ubah Data Barang' : '➕ Tambah Barang Baru'; ?></h3>
+                <form action="admin.php" method="POST" style="margin-top: 15px;">
+                    <input type="hidden" name="id_edit" value="<?= $id_edit; ?>">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Kode Barang</label>
+                            <input type="text" name="kode_barang" value="<?= $kode; ?>" readonly style="background-color: #e9ecef; font-weight: bold; color: #495057;">
+                        </div>
+                        <div class="form-group"><label>Nama Barang</label><input type="text" name="nama_barang" value="<?= $nama; ?>" required></div>
+                        <div class="form-group">
+                            <label>Kategori</label>
+                            <select name="id_kategori" required>
+                                <option value="">-- Pilih --</option>
+                                <?php mysqli_data_seek($kategori_options, 0); while($kat = mysqli_fetch_assoc($kategori_options)): ?>
+                                    <option value="<?= $kat['id']; ?>" <?= ($kat['id'] == $id_kategori_pilih) ? 'selected' : ''; ?>><?= $kat['nama_kategori']; ?></option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Stok</label><input type="number" name="stok" value="<?= $stok; ?>" required min="0"></div>
+                        <div class="form-group"><label>Harga</label><input type="number" name="harga" value="<?= $harga; ?>" required min="0"></div>
                     </div>
-                    <div class="form-group"><label>Nama Barang</label><input type="text" name="nama_barang" value="<?= $nama; ?>" required></div>
-                    <div class="form-group">
-                        <label>Kategori</label>
-                        <select name="id_kategori" required>
-                            <option value="">-- Pilih Kategori --</option>
-                            <?php while($kat = mysqli_fetch_assoc($kategori_options)): ?>
-                                <option value="<?= $kat['id']; ?>" <?= ($kat['id'] == $id_kategori_pilih) ? 'selected' : ''; ?>><?= $kat['nama_kategori']; ?></option>
-                            <?php endwhile; ?>
-                        </select>
+                    <button type="submit" name="simpan" class="btn btn-success"><?= $is_edit ? 'Simpan Perubahan' : 'Tambah Data'; ?></button>
+                    <?php if($is_edit): ?> <a href="admin.php" style="margin-left:10px; color:#555;">Batal</a> <?php endif; ?>
+                </form>
+            </div>
+
+            <!-- Form Tambah Kategori Baru (Dinamis) -->
+            <div class="form-container" style="border-left: 4px solid #0284c7;">
+                <h3>📁 Kategori Baru</h3>
+                <form action="admin.php" method="POST" style="margin-top: 15px;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Nama Kategori</label>
+                        <input type="text" name="nama_kategori_baru" placeholder="Misal: Kosmetik" required autocomplete="off">
                     </div>
-                    <div class="form-group"><label>Jumlah Stok</label><input type="number" name="stok" value="<?= $stok; ?>" required min="0"></div>
-                    <div class="form-group"><label>Harga Satuan</label><input type="number" name="harga" value="<?= $harga; ?>" required min="0"></div>
-                </div>
-                <button type="submit" name="simpan" class="btn btn-success"><?= $is_edit ? 'Simpan Perubahan' : 'Tambah Data'; ?></button>
-                <?php if($is_edit): ?> <a href="admin.php" style="margin-left:10px; color:#555;">Batal</a> <?php endif; ?>
-            </form>
+                    <button type="submit" name="tambah_kategori" class="btn btn-primary">➕ Buat Kategori</button>
+                </form>
+            </div>
         </div>
+
         <table>
             <thead><tr><th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr></thead>
             <tbody>
