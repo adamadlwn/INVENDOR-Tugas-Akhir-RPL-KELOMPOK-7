@@ -41,7 +41,7 @@ if (isset($_POST['tambah_supplier'])) {
     header("Location: admin.php"); exit;
 }
 
-// hm
+// PROSES SIMPAN / EDIT BARANG (SUDAH DI-UPGRADE LOGIKA AUDIT-NYA)
 if (isset($_POST['simpan'])) {
     $nama = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
     $id_kategori = (int)$_POST['id_kategori'];
@@ -53,16 +53,19 @@ if (isset($_POST['simpan'])) {
     if ($_POST['id_edit'] != '') {
         $id = $_POST['id_edit'];
         
+        // 1. Tarik info data lama (Stok, Harga, dan Nama Supplier lama)
         $lama = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT b.stok, b.harga, s.nama_supplier FROM barang b LEFT JOIN supplier s ON b.id_supplier = s.id WHERE b.id=$id"));
         $stok_lama = $lama['stok'];
         $harga_lama = $lama['harga'];
         $supplier_lama = $lama['nama_supplier'] ?? 'Belum Ada Supplier';
         
+        // 2. Cari tahu nama supplier baru berdasarkan ID yang dipilih di form
         $sp_baru_row = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT nama_supplier FROM supplier WHERE id=$id_supplier"));
         $supplier_baru = $sp_baru_row['nama_supplier'] ?? 'Belum Ada Supplier';
         
         $selisih = $stok - $stok_lama;
         
+        // 3. Menyusun string audit perubahan secara dinamis
         $perubahan_detail = [];
         if ($stok != $stok_lama) { $perubahan_detail[] = "Stok ($stok_lama -> $stok)"; }
         if ($harga != $harga_lama) { $perubahan_detail[] = "Harga (Rp " . number_format($harga_lama,0,',','.') . " -> Rp " . number_format($harga,0,',','.') . ")"; }
@@ -74,14 +77,10 @@ if (isset($_POST['simpan'])) {
             $ket_log = "Memperbarui data barang [$nama]: " . implode(", ", $perubahan_detail);
         }
         
-        // 🛑
-        mysqli_query($koneksi, "UPDATE barang_TYPO_ERROR SET nama_barang='$nama' WHERE id=$id") 
-        or die("<div style='color:#c62828; background:#ffebee; padding:30px; border:3px dashed #c62828; font-family:sans-serif; border-radius:10px; margin:50px auto; max-width:700px;'>
-                <h2>⚠️ SQL Syntax Error (Bug Terdeteksi)</h2>
-                <p>Proses pembaruan data gagal! Sistem mendeteksi kegagalan kueri database pada file admin.php baris 83.</p>
-                <p><b>Pesan Sistem:</b> Table 'invendor.barang_typo_error' doesn't exist.</p>
-               </div>");
+        // 4. Jalankan Query Update Data Barang
+        mysqli_query($koneksi, "UPDATE barang SET nama_barang='$nama', id_kategori=$id_kategori, id_supplier=$id_supplier, stok=$stok, harga=$harga WHERE id=$id");
         
+        // 5. Masukkan rekam jejak mendalam ke Jurnal Riwayat
         $ket_log_aman = mysqli_real_escape_string($koneksi, $ket_log);
         mysqli_query($koneksi, "INSERT INTO riwayat_stok (id_barang, jenis_perubahan, jumlah_perubahan, id_user, keterangan) VALUES ($id, 'PROSES EDIT', $selisih, $user_id, '$ket_log_aman')");
     } else {
